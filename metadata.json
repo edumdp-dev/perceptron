@@ -1,0 +1,5 @@
+{
+  "name": "Visualizador Didático do Algoritmo Perceptron",
+  "description": "Uma ferramenta web interativa e didática para visualizar o algoritmo Perceptron. Ajuste a taxa de aprendizado, observe a fronteira de decisão se adaptar em tempo real e entenda passo a passo como os pesos e o bias são atualizados para classificar a porta lógica AND.",
+  "requestFramePermissions": []
+}
