@@ -1,14 +1,14 @@
 import React, { useRef, useEffect } from 'react';
-import { Weights } from '../types';
-import { AND_GATE_DATA } from '../constants';
+import { Weights, AndGateData } from '../types';
 
 interface DecisionBoundaryPlotProps {
     weights: Weights;
     currentStep: number;
     theme: 'light' | 'dark';
+    trainingData: AndGateData[];
 }
 
-const DecisionBoundaryPlot: React.FC<DecisionBoundaryPlotProps> = ({ weights, currentStep, theme }) => {
+const DecisionBoundaryPlot: React.FC<DecisionBoundaryPlotProps> = ({ weights, currentStep, theme, trainingData }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const animationFrameIdRef = useRef<number | null>(null);
     const prevWeightsRef = useRef<Weights>(weights);
@@ -82,7 +82,7 @@ const DecisionBoundaryPlot: React.FC<DecisionBoundaryPlotProps> = ({ weights, cu
             ctx.fillText('0', toCanvasX(0) - 5, toCanvasY(0) + 15);
             ctx.fillText('1', toCanvasX(1) - 5, toCanvasY(0) + 15);
 
-            AND_GATE_DATA.forEach((point, index) => {
+            trainingData.forEach((point, index) => {
                 const { x1, x2, y } = point;
                 const cx = toCanvasX(x1);
                 const cy = toCanvasY(x2);
@@ -166,12 +166,12 @@ const DecisionBoundaryPlot: React.FC<DecisionBoundaryPlotProps> = ({ weights, cu
             prevWeightsRef.current = endWeights;
         };
 
-    }, [weights, currentStep, theme]);
+    }, [weights, currentStep, theme, trainingData]);
 
     return (
-        <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl p-4 shadow-lg h-[600px]">
+        <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl p-4 shadow-lg h-[600px] flex flex-col">
             <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-3 text-center">Fronteira de Decisão</h3>
-            <canvas ref={canvasRef} className="w-full h-full"></canvas>
+            <canvas ref={canvasRef} className="w-full flex-grow"></canvas>
         </div>
     );
 };

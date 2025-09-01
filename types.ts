@@ -1,3 +1,5 @@
+export type ActivationFunction = 'step' | 'sigmoid';
+
 export interface Weights {
     w1: number;
     w2: number;
@@ -10,6 +12,7 @@ export interface PerceptronState {
     currentStep: number;
     totalErrorsInEpoch: number;
     learningRate: number;
+    activationFunction: ActivationFunction;
 }
 
 export interface AndGateData {
@@ -32,6 +35,8 @@ export interface CalculationTraceType {
     new_w2: number;
     new_b: number;
     learningRate: number;
+    sigmoidOutput?: number;
+    activationFunction: ActivationFunction;
 }
 
 export interface HistoryEntry {
@@ -51,4 +56,6 @@ export interface HistoryEntry {
     old_b: number;
     weights_updated: boolean;
     learningRate: number;
+    sigmoidOutput?: number;
+    activationFunction: ActivationFunction;
 }

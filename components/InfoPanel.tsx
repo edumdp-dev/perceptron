@@ -18,13 +18,17 @@ const InfoPanel: React.FC = () => {
                 </p>
                 <ol className="list-decimal list-inside space-y-2 pl-2">
                     <li>
-                        <strong>Inicializar:</strong> Comece com pesos (<Code>w₁</Code>, <Code>w₂</Code>) e bias (<Code>b</Code>) definidos.
+                        <strong>Inicializar:</strong> Comece com pesos (<Code>w₁</Code>, <Code>w₂</Code>) e bias (<Code>b</Code>).
                     </li>
                     <li>
                         <strong>Soma Ponderada:</strong> Calcule a soma:<Code>z = (w₁*x₁) + (w₂*x₂) + b</Code>.
                     </li>
                     <li>
-                        <strong>Ativação:</strong> Se<Code>z &gt;= 0</Code>, a saída (<Code>ŷ</Code>) é 1, caso contrário, é 0.
+                        <strong>Função de Ativação:</strong> A saída (<Code>ŷ</Code>) é determinada por uma função de ativação.
+                        <ul className="list-disc list-inside pl-4 mt-1 space-y-1">
+                            <li><strong>Função Degrau (Step):</strong> Se<Code>z &gt;= 0</Code>, a saída é 1, caso contrário, é 0. É uma decisão binária direta.</li>
+                            <li><strong>Função Sigmóide:</strong> A saída é uma probabilidade entre 0 e 1, calculada como <Code>1 / (1 + e⁻ᶻ)</Code>. Um limiar (0.5) é usado para converter em 1 ou 0.</li>
+                        </ul>
                     </li>
                     <li>
                         <strong>Atualizar Pesos:</strong> Se a previsão (<Code>ŷ</Code>) estiver errada, ajuste os pesos e o bias para reduzir o erro (<Code>erro = y - ŷ</Code>).

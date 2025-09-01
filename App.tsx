@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, createContext, useContext, useMemo } from 'react';
-import { PerceptronState, HistoryEntry, CalculationTraceType, Weights } from './types';
-import { INITIAL_STATE, AND_GATE_DATA } from './constants';
+import { PerceptronState, HistoryEntry, CalculationTraceType, Weights, ActivationFunction, AndGateData } from './types';
+import { INITIAL_STATE, DEFAULT_AND_GATE_DATA } from './constants';
 import ControlPanel from './components/ControlPanel';
 import StateDisplay from './components/StateDisplay';
 import HistoryLog from './components/CalculationTrace';
@@ -82,19 +82,27 @@ const CodeBlock: React.FC<{ children: React.ReactNode, className?: string }> = (
     </code>
 );
 
-const TestingPanel: React.FC<{ weights: Weights }> = ({ weights }) => {
+const TestingPanel: React.FC<{ weights: Weights, activationFunction: ActivationFunction }> = ({ weights, activationFunction }) => {
     const [inputs, setInputs] = useState({ x1: 1, x2: 1 });
 
-    const { z, y_predicted } = React.useMemo(() => {
+    const { z, y_predicted, sigmoidOutput } = React.useMemo(() => {
         const z_calc = (weights.w1 * inputs.x1) + (weights.w2 * inputs.x2) + weights.b;
-        const y_pred = z_calc >= 0 ? 1 : 0;
-        return { z: z_calc, y_predicted: y_pred };
-    }, [weights, inputs]);
+        let y_pred: 0 | 1 = 0;
+        let sig_out: number | undefined = undefined;
+
+        if (activationFunction === 'sigmoid') {
+            sig_out = 1 / (1 + Math.exp(-z_calc));
+            y_pred = sig_out >= 0.5 ? 1 : 0;
+        } else {
+            y_pred = z_calc >= 0 ? 1 : 0;
+        }
+        return { z: z_calc, y_predicted: y_pred, sigmoidOutput: sig_out };
+    }, [weights, inputs, activationFunction]);
 
     return (
         <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl p-6 shadow-lg">
             <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-4">🧪 Testar Modelo</h2>
-            <p className="text-sm text-slate-500 dark:text-gray-400 mb-4">Insira valores para <code className="text-cyan-600 dark:text-cyan-300">x₁</code> e <code className="text-cyan-600 dark:text-cyan-300">x₂</code> para ver a previsão do Perceptron com os pesos atuais.</p>
+            <p className="text-sm text-slate-500 dark:text-gray-400 mb-4">Insira valores para <code className="text-cyan-600 dark:text-cyan-300">x₁</code> e <code className="text-cyan-600 dark:text-cyan-300">x₂</code> para ver a previsão do Perceptron com os pesos e função de ativação (<code className="text-cyan-600 dark:text-cyan-300">{activationFunction}</code>) atuais.</p>
             
             <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
@@ -118,7 +126,12 @@ const TestingPanel: React.FC<{ weights: Weights }> = ({ weights }) => {
                 </div>
                  <div>
                     <h4 className="font-semibold text-slate-600 dark:text-gray-300 text-xs">3. Previsão (ŷ)</h4>
-                    <CodeBlock className={y_predicted === 1 ? 'text-picpay-green' : 'text-red-500 dark:text-red-400'}>{`ŷ = (${z.toFixed(2)} >= 0) ? 1 : 0  =>  ${y_predicted}`}</CodeBlock>
+                    {activationFunction === 'sigmoid' && sigmoidOutput !== undefined && (
+                        <CodeBlock>{`σ(z) = 1 / (1 + e⁻ᶻ) = ${sigmoidOutput.toFixed(4)}\nŷ = (${sigmoidOutput.toFixed(4)} >= 0.5) ? 1 : 0 => ${y_predicted}`}</CodeBlock>
+                    )}
+                    {activationFunction === 'step' && (
+                         <CodeBlock className={y_predicted === 1 ? 'text-picpay-green' : 'text-red-500 dark:text-red-400'}>{`ŷ = (${z.toFixed(2)} >= 0) ? 1 : 0  =>  ${y_predicted}`}</CodeBlock>
+                    )}
                 </div>
             </div>
 
@@ -146,14 +159,18 @@ const AppContent: React.FC = () => {
     const { theme } = useTheme();
     const [initialWeights, setInitialWeights] = useState<Weights>({ w1: 0, w2: 0, b: 0 });
     const [initialLearningRate, setInitialLearningRate] = useState<number>(1.0);
+    const [initialActivationFunction, setInitialActivationFunction] = useState<ActivationFunction>('step');
+    const [trainingData, setTrainingData] = useState<AndGateData[]>(DEFAULT_AND_GATE_DATA);
+
 
     const getInitialState = useCallback((): PerceptronState => {
         return {
             ...INITIAL_STATE,
             weights: initialWeights,
             learningRate: initialLearningRate,
+            activationFunction: initialActivationFunction,
         };
-    }, [initialWeights, initialLearningRate]);
+    }, [initialWeights, initialLearningRate, initialActivationFunction]);
 
     const [state, setState] = useState<PerceptronState>(getInitialState());
     const [isRunning, setIsRunning] = useState<boolean>(false);
@@ -172,6 +189,7 @@ const AppContent: React.FC = () => {
         setState(getInitialState());
         setHistory([]);
         setIsConverged(false);
+        setTrainingData(DEFAULT_AND_GATE_DATA);
     }, [getInitialState]);
 
     const handleLearningRateChange = (newRate: number) => {
@@ -186,20 +204,63 @@ const AppContent: React.FC = () => {
         setState(prevState => ({ ...prevState, weights: newWeights }));
     }
 
+    const handleActivationFunctionChange = (func: ActivationFunction) => {
+        if (isRunning) return;
+        setInitialActivationFunction(func);
+        setState(prevState => ({ ...prevState, activationFunction: func }));
+    };
+
+    const handleTrainingDataChange = (index: number, newRow: AndGateData) => {
+        if (isRunning) return;
+        const newData = [...trainingData];
+        // Clamp values to 0 or 1
+        const clampedRow: AndGateData = {
+            x1: Math.max(0, Math.min(1, Math.round(newRow.x1))) as 0 | 1,
+            x2: Math.max(0, Math.min(1, Math.round(newRow.x2))) as 0 | 1,
+            y: Math.max(0, Math.min(1, Math.round(newRow.y))) as 0 | 1,
+        };
+        newData[index] = clampedRow;
+        setTrainingData(newData);
+    };
+
+    const addTrainingDataRow = () => {
+        if (isRunning) return;
+        setTrainingData([...trainingData, { x1: 0, x2: 0, y: 0 }]);
+    };
+
+    const removeTrainingDataRow = (index: number) => {
+        if (isRunning || trainingData.length <= 1) return;
+        setTrainingData(trainingData.filter((_, i) => i !== index));
+    };
+
     const step = useCallback(() => {
+        if (trainingData.length === 0) {
+            setIsRunning(false);
+            return;
+        }
         setState(prevState => {
             if (isConverged) {
                 setIsRunning(false);
                 return prevState;
             }
 
-            const { currentStep, epoch, weights, totalErrorsInEpoch, learningRate } = prevState;
+            const { currentStep, epoch, weights, totalErrorsInEpoch, learningRate, activationFunction } = prevState;
             const oldWeights = { ...weights };
 
-            const { x1, x2, y: y_actual } = AND_GATE_DATA[currentStep];
+            const { x1, x2, y: y_actual } = trainingData[currentStep];
 
             const z = (x1 * oldWeights.w1) + (x2 * oldWeights.w2) + oldWeights.b;
-            const y_predicted = z >= 0 ? 1 : 0;
+            
+            let y_predicted: 0 | 1;
+            let sigmoidOutput: number | undefined = undefined;
+
+            if (activationFunction === 'sigmoid') {
+                sigmoidOutput = 1 / (1 + Math.exp(-z));
+                y_predicted = sigmoidOutput >= 0.5 ? 1 : 0;
+            } else { // step function
+                y_predicted = z >= 0 ? 1 : 0;
+            }
+
             const error = y_actual - y_predicted;
             
             const newWeights = { ...oldWeights };
@@ -225,20 +286,29 @@ const AppContent: React.FC = () => {
                 old_w2: oldWeights.w2,
                 old_b: oldWeights.b,
                 weights_updated,
-                learningRate
+                learningRate,
+                sigmoidOutput,
+                activationFunction
             };
             setHistory(prevHistory => [...prevHistory, newHistoryEntry]);
             
-            let nextStep = (currentStep + 1) % AND_GATE_DATA.length;
+            let nextStep = (currentStep + 1) % trainingData.length;
             let nextEpoch = epoch;
+            let nextTotalErrors = currentTotalErrors;
             
-            if (nextStep === 0) {
-                nextEpoch++;
-                if(currentTotalErrors === 0 && currentStep === AND_GATE_DATA.length - 1) {
+            if (nextStep === 0) { // End of an epoch
+                if (currentTotalErrors === 0) {
                     setIsConverged(true);
                     setIsRunning(false);
+                     return { // Retorna o estado final sem incrementar a época
+                        ...prevState,
+                        weights: newWeights,
+                        totalErrorsInEpoch: 0,
+                    };
+                } else {
+                    nextEpoch++;
+                    nextTotalErrors = 0; // Reset for next epoch
                 }
-                currentTotalErrors = 0;
             }
 
             return {
@@ -246,10 +316,10 @@ const AppContent: React.FC = () => {
                 weights: newWeights,
                 epoch: nextEpoch,
                 currentStep: nextStep,
-                totalErrorsInEpoch: currentTotalErrors,
+                totalErrorsInEpoch: nextTotalErrors,
             };
         });
-    }, [isConverged]);
+    }, [isConverged, trainingData]);
 
     useEffect(() => {
         if (isRunning) {
@@ -293,6 +363,9 @@ const AppContent: React.FC = () => {
                             onLearningRateChange={handleLearningRateChange}
                             initialWeights={initialWeights}
                             onInitialWeightsChange={handleInitialWeightsChange}
+                            activationFunction={state.activationFunction}
+                            onActivationFunctionChange={handleActivationFunctionChange}
+                            trainingDataLength={trainingData.length}
                         />
 
                         <div role="tablist" className="flex space-x-1 bg-slate-200 dark:bg-gray-900 border border-slate-300 dark:border-gray-800 rounded-xl p-1">
@@ -303,24 +376,31 @@ const AppContent: React.FC = () => {
                         {activeTab === 'simulation' && (
                             <div className="space-y-6 animate-fade-in">
                                 <StateDisplay state={state} isConverged={isConverged}/>
-                                <DataTable currentStep={state.currentStep} />
+                                <DataTable 
+                                    currentStep={state.currentStep} 
+                                    trainingData={trainingData}
+                                    onDataChange={handleTrainingDataChange}
+                                    onAddRow={addTrainingDataRow}
+                                    onRemoveRow={removeTrainingDataRow}
+                                    isRunning={isRunning}
+                                />
                                 <InfoPanel />
                             </div>
                         )}
                         {activeTab === 'testing' && (
                              <div className="animate-fade-in">
-                                <TestingPanel weights={state.weights} />
+                                <TestingPanel weights={state.weights} activationFunction={state.activationFunction} />
                              </div>
                         )}
 
                     </div>
 
                     <div className="xl:col-span-3 space-y-8">
-                         <DecisionBoundaryPlot weights={state.weights} currentStep={state.currentStep} theme={theme} />
+                         <DecisionBoundaryPlot weights={state.weights} currentStep={state.currentStep} theme={theme} trainingData={trainingData} />
                         <HistoryLog history={history} />
                         {isConverged && (
-                            <div className="bg-picpay-green/10 border border-picpay-green/50 text-picpay-green rounded-lg p-4 text-center text-lg font-semibold shadow-lg">
-                                ✨ Modelo convergiu! O Perceptron aprendeu com sucesso a porta AND.
+                            <div className="bg-picpay-green/10 border border-picpay-green/50 text-picpay-green rounded-lg p-4 text-center text-lg font-semibold shadow-lg animate-fade-in">
+                                ✨ Modelo convergiu! O Perceptron aprendeu com sucesso.
                             </div>
                         )}
                     </div>

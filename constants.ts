@@ -7,9 +7,10 @@ export const INITIAL_STATE: PerceptronState = {
     currentStep: 0,
     totalErrorsInEpoch: 0,
     learningRate: 1.0,
+    activationFunction: 'step',
 };
 
-export const AND_GATE_DATA: AndGateData[] = [
+export const DEFAULT_AND_GATE_DATA: AndGateData[] = [
     { x1: 0, x2: 0, y: 0 },
     { x1: 1, x2: 0, y: 0 },
     { x1: 0, x2: 1, y: 0 },
