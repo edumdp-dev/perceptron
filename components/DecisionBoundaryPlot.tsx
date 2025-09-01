@@ -5,9 +5,10 @@ import { AND_GATE_DATA } from '../constants';
 interface DecisionBoundaryPlotProps {
     weights: Weights;
     currentStep: number;
+    theme: 'light' | 'dark';
 }
 
-const DecisionBoundaryPlot: React.FC<DecisionBoundaryPlotProps> = ({ weights, currentStep }) => {
+const DecisionBoundaryPlot: React.FC<DecisionBoundaryPlotProps> = ({ weights, currentStep, theme }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const animationFrameIdRef = useRef<number | null>(null);
     const prevWeightsRef = useRef<Weights>(weights);
@@ -20,6 +21,23 @@ const DecisionBoundaryPlot: React.FC<DecisionBoundaryPlotProps> = ({ weights, cu
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
+
+        const colors = {
+            light: {
+                bg: '#FFFFFF',
+                grid: '#E2E8F0', // slate-200
+                text: '#64748B', // slate-500
+                activeStroke: '#0F172A', // slate-900
+            },
+            dark: {
+                bg: '#1C1C1E', // gray-900
+                grid: '#2C2C2E', // gray-800
+                text: '#98989A', // gray-400
+                activeStroke: '#FFFFFF',
+            }
+        };
+        const currentThemeColors = colors[theme];
+
 
         const drawScene = (w: Weights) => {
             const { w1, w2, b } = w;
@@ -42,13 +60,13 @@ const DecisionBoundaryPlot: React.FC<DecisionBoundaryPlotProps> = ({ weights, cu
             const toCanvasX = (x: number) => padding + ((x - xMin) / (xMax - xMin)) * plotWidth;
             const toCanvasY = (y: number) => padding + (1 - (y - yMin) / (yMax - yMin)) * plotHeight;
 
-            ctx.fillStyle = '#1C1C1E'; // gray-900
+            ctx.fillStyle = currentThemeColors.bg;
             ctx.fillRect(0, 0, width, height);
 
-            ctx.strokeStyle = '#2C2C2E'; // gray-800
+            ctx.strokeStyle = currentThemeColors.grid;
             ctx.lineWidth = 1;
             ctx.font = '12px "Courier New", monospace';
-            ctx.fillStyle = '#98989A'; // gray-400
+            ctx.fillStyle = currentThemeColors.text;
 
             ctx.beginPath();
             ctx.moveTo(toCanvasX(0), toCanvasY(yMin));
@@ -75,7 +93,7 @@ const DecisionBoundaryPlot: React.FC<DecisionBoundaryPlotProps> = ({ weights, cu
                 ctx.fill();
 
                 if (index === currentStep) {
-                    ctx.strokeStyle = '#FFFFFF';
+                    ctx.strokeStyle = currentThemeColors.activeStroke;
                     ctx.lineWidth = 3;
                     ctx.lineCap = 'round';
                     ctx.beginPath();
@@ -148,11 +166,11 @@ const DecisionBoundaryPlot: React.FC<DecisionBoundaryPlotProps> = ({ weights, cu
             prevWeightsRef.current = endWeights;
         };
 
-    }, [weights, currentStep]);
+    }, [weights, currentStep, theme]);
 
     return (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 shadow-lg aspect-square">
-            <h3 className="text-lg font-bold text-white mb-3 text-center">Fronteira de Decisão</h3>
+        <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl p-4 shadow-lg h-[600px]">
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-3 text-center">Fronteira de Decisão</h3>
             <canvas ref={canvasRef} className="w-full h-full"></canvas>
         </div>
     );

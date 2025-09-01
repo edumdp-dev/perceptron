@@ -1,4 +1,5 @@
 import React from 'react';
+import { Weights } from '../types';
 
 interface ControlPanelProps {
     isRunning: boolean;
@@ -8,47 +9,64 @@ interface ControlPanelProps {
     onStep: () => void;
     onReset: () => void;
     onLearningRateChange: (rate: number) => void;
+    initialWeights: Weights;
+    onInitialWeightsChange: (weights: Weights) => void;
 }
 
 const Button: React.FC<{ onClick: () => void; disabled?: boolean; className?: string; children: React.ReactNode }> = ({ onClick, disabled, className, children }) => (
     <button
         onClick={onClick}
         disabled={disabled}
-        className={`w-full px-4 py-3 text-sm font-semibold rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-950 transition-all duration-150 ease-in-out disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed ${className}`}
+        className={`w-full px-4 py-3 text-sm font-semibold rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900 transition-all duration-150 ease-in-out disabled:bg-slate-200 dark:disabled:bg-gray-700 disabled:text-slate-400 dark:disabled:text-gray-500 disabled:cursor-not-allowed ${className}`}
     >
         {children}
     </button>
 );
 
+const WeightInput: React.FC<{ label: string; value: number; onChange: (value: number) => void; disabled?: boolean; id: string; }> = ({ label, value, onChange, disabled, id }) => (
+    <div>
+        <label htmlFor={id} className="block text-xs font-medium text-slate-500 dark:text-gray-400 mb-1">{label}</label>
+        <input
+            id={id}
+            type="number"
+            step="0.1"
+            value={value}
+            disabled={disabled}
+            onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
+            className="w-full bg-slate-100 dark:bg-gray-800 text-slate-800 dark:text-white rounded-md px-2 py-1.5 border border-slate-300 dark:border-gray-700 focus:ring-2 focus:ring-picpay-green focus:border-picpay-green outline-none disabled:opacity-50"
+        />
+    </div>
+);
 
-const ControlPanel: React.FC<ControlPanelProps> = ({ isRunning, isConverged, onToggleRunning, onStep, onReset, learningRate, onLearningRateChange }) => {
+
+const ControlPanel: React.FC<ControlPanelProps> = ({ isRunning, isConverged, onToggleRunning, onStep, onReset, learningRate, onLearningRateChange, initialWeights, onInitialWeightsChange }) => {
     return (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 shadow-lg">
-            <h2 className="text-xl font-bold text-white mb-4">Controles</h2>
+        <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl p-6 shadow-lg">
+            <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-4">Controles</h2>
             <div className="grid grid-cols-2 gap-3">
                 <Button
                     onClick={onToggleRunning}
                     disabled={isConverged}
-                    className={isRunning ? 'bg-amber-600 hover:bg-amber-700 text-white focus:ring-amber-500' : 'bg-picpay-green hover:bg-green-600 text-white focus:ring-picpay-green'}
+                    className={isRunning ? 'bg-amber-500 hover:bg-amber-600 text-white focus:ring-amber-500' : 'bg-picpay-green hover:bg-green-600 text-white focus:ring-picpay-green'}
                 >
                     {isRunning ? 'Pausar' : 'Executar'}
                 </Button>
                  <Button
                     onClick={onStep}
                     disabled={isRunning || isConverged}
-                    className="bg-gray-700 hover:bg-gray-600 text-white focus:ring-gray-500"
+                    className="bg-slate-600 hover:bg-slate-700 dark:bg-gray-700 dark:hover:bg-gray-600 text-white focus:ring-gray-500"
                 >
                     Passo
                 </Button>
                  <Button
                     onClick={onReset}
-                    className="col-span-2 bg-gray-700 hover:bg-red-600/50 text-white focus:ring-red-500"
+                    className="col-span-2 bg-slate-600 hover:bg-red-500/80 dark:bg-gray-700 dark:hover:bg-red-600/50 text-white focus:ring-red-500"
                 >
                     Resetar
                 </Button>
             </div>
             <div className="mt-6">
-                <label htmlFor="learning-rate" className="block text-sm font-medium text-gray-400 mb-2">
+                <label htmlFor="learning-rate" className="block text-sm font-medium text-slate-500 dark:text-gray-400 mb-2">
                     Taxa de Aprendizado (η): <span className="font-bold text-picpay-green">{learningRate.toFixed(2)}</span>
                 </label>
                 <input
@@ -60,8 +78,34 @@ const ControlPanel: React.FC<ControlPanelProps> = ({ isRunning, isConverged, onT
                     value={learningRate}
                     disabled={isRunning}
                     onChange={(e) => onLearningRateChange(parseFloat(e.target.value))}
-                    className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-picpay-green disabled:cursor-not-allowed disabled:opacity-50"
+                    className="w-full h-2 bg-slate-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-picpay-green disabled:cursor-not-allowed disabled:opacity-50"
                 />
+            </div>
+             <div className="mt-6 pt-4 border-t border-slate-200 dark:border-gray-800">
+                <h3 className="text-sm font-medium text-slate-500 dark:text-gray-400 mb-2">Configuração Inicial</h3>
+                <div className="grid grid-cols-3 gap-3">
+                    <WeightInput
+                        id="initial-w1"
+                        label="Peso w₁"
+                        value={initialWeights.w1}
+                        onChange={(val) => onInitialWeightsChange({ ...initialWeights, w1: val })}
+                        disabled={isRunning}
+                    />
+                    <WeightInput
+                        id="initial-w2"
+                        label="Peso w₂"
+                        value={initialWeights.w2}
+                        onChange={(val) => onInitialWeightsChange({ ...initialWeights, w2: val })}
+                        disabled={isRunning}
+                    />
+                    <WeightInput
+                        id="initial-b"
+                        label="Bias b"
+                        value={initialWeights.b}
+                        onChange={(val) => onInitialWeightsChange({ ...initialWeights, b: val })}
+                        disabled={isRunning}
+                    />
+                </div>
             </div>
         </div>
     );

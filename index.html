@@ -5,17 +5,19 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Visualizador Didático do Perceptron</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
+        darkMode: 'class', // Habilita o modo escuro via classe no elemento HTML
         theme: {
           extend: {
+            fontFamily: {
+              sans: ['Poppins', 'sans-serif'],
+            },
             colors: {
-              'gray-950': '#121212',
-              'gray-900': '#1C1C1E',
-              'gray-800': '#2C2C2E',
-              'gray-700': '#3A3A3C',
-              'gray-400': '#98989A',
               'picpay-green': '#22C55E',
             },
             keyframes: {
@@ -42,7 +44,7 @@
 }
 </script>
 </head>
-<body class="bg-gray-950 text-gray-200">
+<body>
 <div id="root"></div>
 <script type="module" src="/index.tsx"></script>
 </body>

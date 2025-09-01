@@ -50,4 +50,5 @@ export interface HistoryEntry {
     old_w2: number;
     old_b: number;
     weights_updated: boolean;
+    learningRate: number;
 }

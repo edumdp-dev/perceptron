@@ -7,13 +7,13 @@ interface DataTableProps {
 
 const DataTable: React.FC<DataTableProps> = ({ currentStep }) => {
     return (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 shadow-lg h-full">
-            <h3 className="text-lg font-bold text-white mb-3 text-center">Dados de Treino (Porta AND)</h3>
+        <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl p-4 shadow-lg">
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-3 text-center">Dados de Treino (Porta AND)</h3>
             <table className="w-full text-center">
                 <thead>
-                    <tr className="border-b border-gray-700">
-                        <th className="p-2 font-semibold text-gray-400">x₁</th>
-                        <th className="p-2 font-semibold text-gray-400">x₂</th>
+                    <tr className="border-b border-slate-200 dark:border-gray-700">
+                        <th className="p-2 font-semibold text-slate-500 dark:text-gray-400">x₁</th>
+                        <th className="p-2 font-semibold text-slate-500 dark:text-gray-400">x₂</th>
                         <th className="p-2 font-semibold text-picpay-green">y (Correto)</th>
                     </tr>
                 </thead>

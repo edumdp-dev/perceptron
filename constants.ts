@@ -3,7 +3,7 @@ import React from 'react';
 
 export const INITIAL_STATE: PerceptronState = {
     weights: { w1: 0, w2: 0, b: 0 },
-    epoch: 0,
+    epoch: 1,
     currentStep: 0,
     totalErrorsInEpoch: 0,
     learningRate: 1.0,

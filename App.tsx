@@ -1,20 +1,165 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { PerceptronState, HistoryEntry, CalculationTraceType } from './types';
+import React, { useState, useEffect, useCallback, useRef, createContext, useContext, useMemo } from 'react';
+import { PerceptronState, HistoryEntry, CalculationTraceType, Weights } from './types';
 import { INITIAL_STATE, AND_GATE_DATA } from './constants';
 import ControlPanel from './components/ControlPanel';
 import StateDisplay from './components/StateDisplay';
 import HistoryLog from './components/CalculationTrace';
 import InfoPanel from './components/InfoPanel';
-import CalculationDetails from './components/CalculationDetails';
 import DataTable from './components/DataTable';
 import DecisionBoundaryPlot from './components/DecisionBoundaryPlot';
 
-const App: React.FC = () => {
-    const [state, setState] = useState<PerceptronState>(INITIAL_STATE);
+// --- Lógica do Tema ---
+type Theme = 'light' | 'dark';
+interface ThemeContextType {
+    theme: Theme;
+    toggleTheme: () => void;
+}
+
+const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+
+const useTheme = (): ThemeContextType => {
+    const context = useContext(ThemeContext);
+    if (context === undefined) {
+        throw new Error('useTheme must be used within a ThemeProvider');
+    }
+    return context;
+};
+
+const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const [theme, setTheme] = useState<Theme>(() => {
+        const savedTheme = localStorage.getItem('theme') as Theme;
+        const userPrefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+        return savedTheme || (userPrefersDark ? 'dark' : 'light');
+    });
+
+    useEffect(() => {
+        const root = window.document.documentElement;
+        if (theme === 'dark') {
+            root.classList.add('dark');
+        } else {
+            root.classList.remove('dark');
+        }
+        localStorage.setItem('theme', theme);
+    }, [theme]);
+
+    const toggleTheme = () => {
+        setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
+    };
+    
+    const value = useMemo(() => ({ theme, toggleTheme }), [theme]);
+
+    return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+};
+
+
+const ThemeToggler: React.FC = () => {
+    const { theme, toggleTheme } = useTheme();
+
+    return (
+        <button
+            onClick={toggleTheme}
+            className="absolute top-0 right-0 p-2 rounded-full bg-slate-200 dark:bg-gray-800 text-slate-600 dark:text-gray-300 hover:bg-slate-300 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-picpay-green focus:ring-offset-2 focus:ring-offset-slate-50 dark:focus:ring-offset-gray-950"
+            aria-label="Toggle theme"
+        >
+            {theme === 'light' ? (
+                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                </svg>
+            ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+            )}
+        </button>
+    );
+};
+// --- Fim da Lógica do Tema ---
+
+
+const CodeBlock: React.FC<{ children: React.ReactNode, className?: string }> = ({ children, className }) => (
+    <code className={`block bg-slate-100 dark:bg-gray-800/80 border border-slate-200 dark:border-gray-700 text-cyan-700 dark:text-cyan-300 px-3 py-2 rounded-lg text-sm mt-1 whitespace-pre-wrap ${className}`}>
+        {children}
+    </code>
+);
+
+const TestingPanel: React.FC<{ weights: Weights }> = ({ weights }) => {
+    const [inputs, setInputs] = useState({ x1: 1, x2: 1 });
+
+    const { z, y_predicted } = React.useMemo(() => {
+        const z_calc = (weights.w1 * inputs.x1) + (weights.w2 * inputs.x2) + weights.b;
+        const y_pred = z_calc >= 0 ? 1 : 0;
+        return { z: z_calc, y_predicted: y_pred };
+    }, [weights, inputs]);
+
+    return (
+        <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl p-6 shadow-lg">
+            <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-4">🧪 Testar Modelo</h2>
+            <p className="text-sm text-slate-500 dark:text-gray-400 mb-4">Insira valores para <code className="text-cyan-600 dark:text-cyan-300">x₁</code> e <code className="text-cyan-600 dark:text-cyan-300">x₂</code> para ver a previsão do Perceptron com os pesos atuais.</p>
+            
+            <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label htmlFor="testX1" className="block text-sm font-medium text-slate-500 dark:text-gray-400 mb-1">Entrada x₁</label>
+                    <input id="testX1" type="number" value={inputs.x1} onChange={(e) => setInputs(i => ({...i, x1: Number(e.target.value) || 0}))} className="w-full bg-slate-100 dark:bg-gray-800 text-slate-800 dark:text-white rounded-md px-3 py-2 border border-slate-300 dark:border-gray-700 focus:ring-2 focus:ring-picpay-green focus:border-picpay-green outline-none"/>
+                </div>
+                 <div>
+                    <label htmlFor="testX2" className="block text-sm font-medium text-slate-500 dark:text-gray-400 mb-1">Entrada x₂</label>
+                    <input id="testX2" type="number" value={inputs.x2} onChange={(e) => setInputs(i => ({...i, x2: Number(e.target.value) || 0}))} className="w-full bg-slate-100 dark:bg-gray-800 text-slate-800 dark:text-white rounded-md px-3 py-2 border border-slate-300 dark:border-gray-700 focus:ring-2 focus:ring-picpay-green focus:border-picpay-green outline-none"/>
+                </div>
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-slate-200 dark:border-gray-800 space-y-3">
+                 <div>
+                    <h4 className="font-semibold text-slate-600 dark:text-gray-300 text-xs">1. Pesos Atuais</h4>
+                     <CodeBlock>{`w₁=${weights.w1.toFixed(2)}, w₂=${weights.w2.toFixed(2)}, b=${weights.b.toFixed(2)}`}</CodeBlock>
+                </div>
+                <div>
+                    <h4 className="font-semibold text-slate-600 dark:text-gray-300 text-xs">2. Soma Ponderada (z)</h4>
+                    <CodeBlock>{`z = (${weights.w1.toFixed(2)}*${inputs.x1}) + (${weights.w2.toFixed(2)}*${inputs.x2}) + (${weights.b.toFixed(2)}) = ${z.toFixed(2)}`}</CodeBlock>
+                </div>
+                 <div>
+                    <h4 className="font-semibold text-slate-600 dark:text-gray-300 text-xs">3. Previsão (ŷ)</h4>
+                    <CodeBlock className={y_predicted === 1 ? 'text-picpay-green' : 'text-red-500 dark:text-red-400'}>{`ŷ = (${z.toFixed(2)} >= 0) ? 1 : 0  =>  ${y_predicted}`}</CodeBlock>
+                </div>
+            </div>
+
+        </div>
+    );
+};
+
+const TabButton: React.FC<{ label: string; isActive: boolean; onClick: () => void; }> = ({ label, isActive, onClick }) => (
+    <button
+        onClick={onClick}
+        aria-selected={isActive}
+        role="tab"
+        className={`w-full text-center px-4 py-2 text-sm font-semibold rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-50 dark:focus:ring-offset-gray-950 ${
+            isActive
+                ? 'bg-white dark:bg-gray-800 text-slate-800 dark:text-white shadow'
+                : 'text-slate-500 dark:text-gray-400 hover:bg-slate-200/50 dark:hover:bg-gray-800/50 hover:text-slate-800 dark:hover:text-white'
+        }`}
+    >
+        {label}
+    </button>
+);
+
+
+const AppContent: React.FC = () => {
+    const { theme } = useTheme();
+    const [initialWeights, setInitialWeights] = useState<Weights>({ w1: 0, w2: 0, b: 0 });
+    const [initialLearningRate, setInitialLearningRate] = useState<number>(1.0);
+
+    const getInitialState = useCallback((): PerceptronState => {
+        return {
+            ...INITIAL_STATE,
+            weights: initialWeights,
+            learningRate: initialLearningRate,
+        };
+    }, [initialWeights, initialLearningRate]);
+
+    const [state, setState] = useState<PerceptronState>(getInitialState());
     const [isRunning, setIsRunning] = useState<boolean>(false);
     const [history, setHistory] = useState<HistoryEntry[]>([]);
     const [isConverged, setIsConverged] = useState<boolean>(false);
-    const [lastCalculation, setLastCalculation] = useState<CalculationTraceType | null>(null);
+    const [activeTab, setActiveTab] = useState<'simulation' | 'testing'>('simulation');
 
     const intervalRef = useRef<number | null>(null);
     
@@ -24,16 +169,22 @@ const App: React.FC = () => {
             clearInterval(intervalRef.current);
             intervalRef.current = null;
         }
-        setState(INITIAL_STATE);
+        setState(getInitialState());
         setHistory([]);
         setIsConverged(false);
-        setLastCalculation(null);
-    }, []);
+    }, [getInitialState]);
 
     const handleLearningRateChange = (newRate: number) => {
         if (isRunning) return;
+        setInitialLearningRate(newRate);
         setState(prevState => ({ ...prevState, learningRate: newRate }));
     };
+
+    const handleInitialWeightsChange = (newWeights: Weights) => {
+        if(isRunning) return;
+        setInitialWeights(newWeights);
+        setState(prevState => ({ ...prevState, weights: newWeights }));
+    }
 
     const step = useCallback(() => {
         setState(prevState => {
@@ -62,18 +213,6 @@ const App: React.FC = () => {
                 newWeights.b += learningRate * error;
                 weights_updated = true;
             }
-
-            const calculationDetails: CalculationTraceType = {
-                x1, x2, y_actual, z, y_predicted, error,
-                old_w1: oldWeights.w1,
-                old_w2: oldWeights.w2,
-                old_b: oldWeights.b,
-                new_w1: newWeights.w1,
-                new_w2: newWeights.w2,
-                new_b: newWeights.b,
-                learningRate: learningRate,
-            };
-            setLastCalculation(calculationDetails);
             
             const newHistoryEntry: HistoryEntry = {
                 epoch,
@@ -86,6 +225,7 @@ const App: React.FC = () => {
                 old_w2: oldWeights.w2,
                 old_b: oldWeights.b,
                 weights_updated,
+                learningRate
             };
             setHistory(prevHistory => [...prevHistory, newHistoryEntry]);
             
@@ -129,13 +269,14 @@ const App: React.FC = () => {
 
 
     return (
-        <div className="min-h-screen bg-gray-950 p-4 sm:p-6 lg:p-8 font-sans">
-            <div className="max-w-7xl mx-auto">
+        <div className="min-h-screen bg-slate-50 dark:bg-gray-950 text-slate-800 dark:text-gray-200 p-4 sm:p-6 lg:p-8 transition-colors duration-300">
+            <div className="max-w-7xl mx-auto relative">
+                <ThemeToggler />
                 <header className="text-center mb-10">
-                    <h1 className="text-4xl sm:text-5xl font-bold text-white tracking-tight">
+                    <h1 className="text-4xl sm:text-5xl font-bold text-slate-900 dark:text-white tracking-tight">
                         Simulação de Aprendizagem do <span className="text-picpay-green">Perceptron</span>
                     </h1>
-                    <p className="mt-3 text-lg text-gray-400 max-w-3xl mx-auto">
+                    <p className="mt-3 text-lg text-slate-500 dark:text-gray-400 max-w-3xl mx-auto">
                         Uma visualização interativa do algoritmo Perceptron aprendendo a porta lógica AND.
                     </p>
                 </header>
@@ -150,17 +291,32 @@ const App: React.FC = () => {
                             onStep={step}
                             onReset={resetSimulation}
                             onLearningRateChange={handleLearningRateChange}
+                            initialWeights={initialWeights}
+                            onInitialWeightsChange={handleInitialWeightsChange}
                         />
-                        <StateDisplay state={state} isConverged={isConverged}/>
-                        <DataTable currentStep={state.currentStep} />
-                        {lastCalculation && lastCalculation.error !== 0 && (
-                            <CalculationDetails calculation={lastCalculation} />
+
+                        <div role="tablist" className="flex space-x-1 bg-slate-200 dark:bg-gray-900 border border-slate-300 dark:border-gray-800 rounded-xl p-1">
+                            <TabButton label="Simulação" isActive={activeTab === 'simulation'} onClick={() => setActiveTab('simulation')} />
+                            <TabButton label="Testar Modelo" isActive={activeTab === 'testing'} onClick={() => setActiveTab('testing')} />
+                        </div>
+                        
+                        {activeTab === 'simulation' && (
+                            <div className="space-y-6 animate-fade-in">
+                                <StateDisplay state={state} isConverged={isConverged}/>
+                                <DataTable currentStep={state.currentStep} />
+                                <InfoPanel />
+                            </div>
                         )}
-                        <InfoPanel />
+                        {activeTab === 'testing' && (
+                             <div className="animate-fade-in">
+                                <TestingPanel weights={state.weights} />
+                             </div>
+                        )}
+
                     </div>
 
-                    <div className="xl:col-span-3 space-y-6">
-                         <DecisionBoundaryPlot weights={state.weights} currentStep={state.currentStep} />
+                    <div className="xl:col-span-3 space-y-8">
+                         <DecisionBoundaryPlot weights={state.weights} currentStep={state.currentStep} theme={theme} />
                         <HistoryLog history={history} />
                         {isConverged && (
                             <div className="bg-picpay-green/10 border border-picpay-green/50 text-picpay-green rounded-lg p-4 text-center text-lg font-semibold shadow-lg">
@@ -173,5 +329,12 @@ const App: React.FC = () => {
         </div>
     );
 };
+
+const App: React.FC = () => (
+    <ThemeProvider>
+        <AppContent />
+    </ThemeProvider>
+);
+
 
 export default App;

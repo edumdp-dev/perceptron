@@ -2,17 +2,17 @@ import React from 'react';
 import { InfoIcon } from '../constants';
 
 const Code: React.FC<{children: React.ReactNode}> = ({children}) => (
-    <code className="bg-gray-800 text-cyan-300 px-1.5 py-0.5 rounded-md text-xs mx-1">{children}</code>
+    <code className="bg-slate-100 dark:bg-gray-800 text-cyan-700 dark:text-cyan-300 px-1.5 py-0.5 rounded-md text-xs mx-1">{children}</code>
 )
 
 const InfoPanel: React.FC = () => {
     return (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 shadow-lg">
-            <h2 className="text-xl font-bold text-white mb-4 flex items-center">
+        <div className="bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl p-6 shadow-lg">
+            <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-4 flex items-center">
                 <InfoIcon className="h-6 w-6 mr-2 text-picpay-green"/>
                 Como Funciona
             </h2>
-            <div className="text-gray-400 text-sm space-y-3">
+            <div className="text-slate-500 dark:text-gray-400 text-sm space-y-3">
                 <p>
                     O Perceptron é um algoritmo de aprendizado supervisionado para classificação binária. Ele aprende uma fronteira de decisão linear para separar duas classes.
                 </p>
